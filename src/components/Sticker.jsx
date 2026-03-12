@@ -1,26 +1,31 @@
 import { STICKER_COLORS } from "../config/constants";
 
-export default function Sticker({ sticker, onDragStart, compact = false, dimmed = false }) {
+export default function Sticker({ sticker, onDragStart, onClick, compact = false, dimmed = false, selected = false, enableDrag = true }) {
   const c = STICKER_COLORS[sticker.color] || STICKER_COLORS.blue;
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, sticker)}
+      draggable={enableDrag}
+      onDragStart={enableDrag ? (e) => onDragStart(e, sticker) : undefined}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
       style={{
         background: c.bg,
-        border: `1.5px solid ${c.border}`,
+        border: selected ? `2px solid ${c.dot}` : `1.5px solid ${c.border}`,
         borderRadius: 10,
         padding: compact ? "6px 10px" : "10px 13px",
-        cursor: "grab",
+        cursor: enableDrag ? "grab" : onClick ? "pointer" : "default",
         userSelect: "none",
         opacity: dimmed ? 0.45 : 1,
         display: "flex",
         alignItems: "flex-start",
         gap: 7,
         transition: "transform 0.12s, box-shadow 0.12s",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+        boxShadow: selected ? `0 0 0 3px ${c.dot}33` : "0 1px 3px rgba(0,0,0,0.08)",
         fontSize: compact ? 11 : 12.5,
         fontFamily: "'DM Sans', sans-serif",
+        touchAction: "manipulation",
       }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = "scale(1.03)";

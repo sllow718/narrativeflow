@@ -16,6 +16,9 @@ export default function StoryboardTab({
   setDragOver,
   onDrop,
   placedStickerIds,
+  selectedSticker,
+  onStickerTap,
+  onZoneTap,
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const [newText, setNewText] = useState("");
@@ -23,7 +26,7 @@ export default function StoryboardTab({
 
   const addCustomSticker = () => {
     if (!newText.trim()) return;
-    setStickers((prev) => [...prev, { id: genId(), text: newText.trim(), color: newColor }]);
+    setStickers((prev) => [{ id: genId(), text: newText.trim(), color: newColor }, ...prev]);
     setNewText("");
     setShowCreate(false);
   };
@@ -134,7 +137,18 @@ export default function StoryboardTab({
 
         <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
           {stickers.map((s) => (
-            <Sticker key={s.id} sticker={s} onDragStart={(e, st) => onDragStart(e, st, "tray")} compact dimmed={placedStickerIds.has(s.id)} />
+            <Sticker
+              key={s.id}
+              sticker={s}
+              onDragStart={(e, st) => onDragStart(e, st, "tray")}
+              onClick={() => {
+                if (isMobile) onStickerTap?.(s);
+              }}
+              selected={isMobile && selectedSticker?.id === s.id}
+              enableDrag={!isMobile}
+              compact
+              dimmed={placedStickerIds.has(s.id)}
+            />
           ))}
         </div>
       </aside>
@@ -157,6 +171,9 @@ export default function StoryboardTab({
               }}
               onDragLeave={() => setDragOver(null)}
               onDrop={(e) => onDrop(e, col.id, "storyboard")}
+              onClick={() => {
+                if (isMobile) onZoneTap?.(col.id, "storyboard");
+              }}
               style={{
                 flex: 1,
                 minWidth: isMobile ? "100%" : 240,
@@ -195,14 +212,25 @@ export default function StoryboardTab({
                       fontWeight: 500,
                     }}
                   >
-                    Drop stickers here
+                    {isMobile ? "Tap a sticker, then tap here" : "Drop stickers here"}
                   </div>
                 )}
                 {storyboard[col.id].map((s) => (
                   <div key={s.id} style={{ position: "relative" }}>
-                    <Sticker sticker={s} onDragStart={(e, st) => onDragStart(e, st, col.id)} />
+                    <Sticker
+                      sticker={s}
+                      onDragStart={(e, st) => onDragStart(e, st, col.id)}
+                      onClick={() => {
+                        if (isMobile) onStickerTap?.(s);
+                      }}
+                      selected={isMobile && selectedSticker?.id === s.id}
+                      enableDrag={!isMobile}
+                    />
                     <button
-                      onClick={() => setStoryboard((prev) => ({ ...prev, [col.id]: prev[col.id].filter((x) => x.id !== s.id) }))}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setStoryboard((prev) => ({ ...prev, [col.id]: prev[col.id].filter((x) => x.id !== s.id) }));
+                      }}
                       style={{
                         position: "absolute",
                         top: 5,

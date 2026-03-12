@@ -1,7 +1,19 @@
-﻿import Sticker from "./Sticker";
+import Sticker from "./Sticker";
 import { NARRATIVE_NODES } from "../config/constants";
 
-export default function NarrativeTab({ isMobile = false, stickers, narrative, setNarrative, onDragStart, dragOver, setDragOver, onDrop }) {
+export default function NarrativeTab({
+  isMobile = false,
+  stickers,
+  narrative,
+  setNarrative,
+  onDragStart,
+  dragOver,
+  setDragOver,
+  onDrop,
+  selectedSticker,
+  onStickerTap,
+  onZoneTap,
+}) {
   const nodePositions = isMobile
     ? [
         { x: 30, y: 88 },
@@ -52,6 +64,11 @@ export default function NarrativeTab({ isMobile = false, stickers, narrative, se
               key={s.id}
               sticker={s}
               onDragStart={(e, st) => onDragStart(e, st, "tray")}
+              onClick={() => {
+                if (isMobile) onStickerTap?.(s);
+              }}
+              selected={isMobile && selectedSticker?.id === s.id}
+              enableDrag={!isMobile}
               compact
               dimmed={Object.values(narrative).flat().some((n) => n.id === s.id)}
             />
@@ -92,6 +109,9 @@ export default function NarrativeTab({ isMobile = false, stickers, narrative, se
                 }}
                 onDragLeave={() => setDragOver(null)}
                 onDrop={(e) => onDrop(e, node.id, "narrative")}
+                onClick={() => {
+                  if (isMobile) onZoneTap?.(node.id, "narrative");
+                }}
                 style={{
                   background: "#fff",
                   border: dragOver === node.id ? `2px solid ${node.color}` : "1.5px solid #e5e7eb",
@@ -129,14 +149,26 @@ export default function NarrativeTab({ isMobile = false, stickers, narrative, se
                         justifyContent: "center",
                       }}
                     >
-                      Drop here
+                      {isMobile ? "Tap a sticker, then tap here" : "Drop here"}
                     </div>
                   )}
                   {narrative[node.id].map((s) => (
                     <div key={s.id} style={{ position: "relative" }}>
-                      <Sticker sticker={s} onDragStart={(e, st) => onDragStart(e, st, node.id)} compact />
+                      <Sticker
+                        sticker={s}
+                        onDragStart={(e, st) => onDragStart(e, st, node.id)}
+                        onClick={() => {
+                          if (isMobile) onStickerTap?.(s);
+                        }}
+                        selected={isMobile && selectedSticker?.id === s.id}
+                        enableDrag={!isMobile}
+                        compact
+                      />
                       <button
-                        onClick={() => setNarrative((prev) => ({ ...prev, [node.id]: prev[node.id].filter((x) => x.id !== s.id) }))}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setNarrative((prev) => ({ ...prev, [node.id]: prev[node.id].filter((x) => x.id !== s.id) }));
+                        }}
                         style={{
                           position: "absolute",
                           top: 4,
@@ -175,7 +207,7 @@ export default function NarrativeTab({ isMobile = false, stickers, narrative, se
                         <div style={{ width: 8, height: 8, borderRadius: "50%", background: node.color, flexShrink: 0, marginTop: 5 }} />
                         <div>
                           <span style={{ color: node.color, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                            {node.label}: 
+                            {node.label}:{" "}
                           </span>
                           <span style={{ color: "#4c1d95", fontSize: 13, whiteSpace: "pre-line" }}>{narrative[node.id].map((s) => s.text).join(" | ")}</span>
                         </div>
@@ -190,4 +222,3 @@ export default function NarrativeTab({ isMobile = false, stickers, narrative, se
     </div>
   );
 }
-

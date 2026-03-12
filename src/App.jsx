@@ -34,6 +34,7 @@ export default function App() {
   const [narrative, setNarrative] = useState(() => createEmptyNarrative());
   const [dragging, setDragging] = useState(null);
   const [dragOver, setDragOver] = useState(null);
+  const [selectedSticker, setSelectedSticker] = useState(null);
 
   const placedStickerIds = new Set([
     ...Object.values(storyboard)
@@ -48,17 +49,19 @@ export default function App() {
     setStickers(shuffleStickers(activity.masterStickers));
     setStoryboard(createEmptyStoryboard());
     setNarrative(createEmptyNarrative());
+    setSelectedSticker(null);
   }, [activity.id]);
 
   const handleDragStart = (e, sticker, source = "tray") => {
     setDragging({ sticker, source });
+    setSelectedSticker(sticker);
     e.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDrop = (e, zone, type) => {
-    e.preventDefault();
-    if (!dragging) return;
-    const { sticker } = dragging;
+  const handleDrop = (e, zone, type, explicitSticker = null) => {
+    e?.preventDefault?.();
+    const sticker = explicitSticker ?? dragging?.sticker ?? selectedSticker;
+    if (!sticker) return;
 
     if (type === "storyboard") {
       setStoryboard((prev) => {
@@ -89,6 +92,7 @@ export default function App() {
 
     setDragging(null);
     setDragOver(null);
+    setSelectedSticker(null);
   };
 
   const exportProgress = () => {
@@ -279,6 +283,9 @@ export default function App() {
           setDragOver={setDragOver}
           onDrop={handleDrop}
           placedStickerIds={placedStickerIds}
+          selectedSticker={selectedSticker}
+          onStickerTap={(sticker) => setSelectedSticker((prev) => (prev?.id === sticker.id ? null : sticker))}
+          onZoneTap={(zone, type) => handleDrop(null, zone, type, selectedSticker)}
         />
       )}
       {activeTab === "narrative" && (
@@ -291,6 +298,9 @@ export default function App() {
           dragOver={dragOver}
           setDragOver={setDragOver}
           onDrop={handleDrop}
+          selectedSticker={selectedSticker}
+          onStickerTap={(sticker) => setSelectedSticker((prev) => (prev?.id === sticker.id ? null : sticker))}
+          onZoneTap={(zone, type) => handleDrop(null, zone, type, selectedSticker)}
         />
       )}
 
