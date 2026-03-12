@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Ears -->
+  <polygon points="45,70 30,10 70,50" fill="#F5C800" />
+  <polygon points="50,65 38,20 65,48" fill="#1a1a1a" />
+  <polygon points="155,70 170,10 130,50" fill="#F5C800" />
+  <polygon points="150,65 162,20 135,48" fill="#1a1a1a" />
+
+  <!-- Head -->
+  <ellipse cx="100" cy="95" rx="62" ry="58" fill="#F5C800" />
+
+  <!-- Cheek blush -->
+  <ellipse cx="55" cy="112" rx="16" ry="11" fill="#FF6B6B" opacity="0.85" />
+  <ellipse cx="145" cy="112" rx="16" ry="11" fill="#FF6B6B" opacity="0.85" />
+
+  <!-- Eyes -->
+  <ellipse cx="78" cy="82" rx="10" ry="11" fill="#1a1a1a" />
+  <ellipse cx="122" cy="82" rx="10" ry="11" fill="#1a1a1a" />
+  <!-- Eye shine -->
+  <ellipse cx="82" cy="78" rx="3.5" ry="4" fill="white" />
+  <ellipse cx="126" cy="78" rx="3.5" ry="4" fill="white" />
+
+  <!-- Nose -->
+  <ellipse cx="100" cy="98" rx="4" ry="2.5" fill="#C8A000" />
+
+  <!-- Mouth -->
+  <path d="M88,108 Q100,122 112,108" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round" />
+  <path d="M88,108 Q84,113 87,116" stroke="#1a1a1a" stroke-width="2" fill="none" stroke-linecap="round" />
+  <path d="M112,108 Q116,113 113,116" stroke="#1a1a1a" stroke-width="2" fill="none" stroke-linecap="round" />
+
+  <!-- Body -->
+  <ellipse cx="100" cy="162" rx="42" ry="34" fill="#F5C800" />
+
+  <!-- Belly -->
+  <ellipse cx="100" cy="165" rx="24" ry="20" fill="#F0D060" opacity="0.6" />
+
+  <!-- Arms -->
+  <ellipse cx="56" cy="158" rx="13" ry="9" fill="#F5C800" transform="rotate(-30 56 158)" />
+  <ellipse cx="144" cy="158" rx="13" ry="9" fill="#F5C800" transform="rotate(30 144 158)" />
+
+  <!-- Tail base hint -->
+  <path d="M138,155 Q158,140 162,125 Q166,108 155,100" stroke="#F5C800" stroke-width="8" fill="none" stroke-linecap="round" />
+  <path d="M155,100 Q165,85 158,75 Q150,65 162,55 Q172,45 165,35" stroke="#F5C800" stroke-width="7" fill="none" stroke-linecap="round" />
+  <path d="M155,100 Q165,85 158,75 Q150,65 162,55 Q172,45 165,35" stroke="#C8A000" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.4" />
+
+  <!-- Lightning bolt on tail -->
+  <polygon points="158,72 150,88 157,88 149,104 163,85 155,85 163,72" fill="#F5C800" stroke="#C8A000" stroke-width="1" />
+</svg>
