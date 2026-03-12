@@ -32,7 +32,7 @@ export default function Sticker({ sticker, onDragStart, compact = false, dimmed 
       }}
     >
       <span style={{ width: 8, height: 8, borderRadius: "50%", background: c.dot, flexShrink: 0, marginTop: 3 }} />
-      <span style={{ color: c.text, fontWeight: 500, lineHeight: 1.4 }}>{sticker.text}</span>
+      <span style={{ color: c.text, fontWeight: 500, lineHeight: 1.4, whiteSpace: "pre-line" }}>{sticker.text}</span>
     </div>
   );
 }
