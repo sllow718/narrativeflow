@@ -127,6 +127,42 @@ const activities = [
       },
     ],
   },
+  {
+    id: "msfx-course",
+    classCode: "TP-GRAPH-2026",
+    className: "MSF Course",
+    scenarioTitle: "E-Commerce",
+    scenarioBrief:
+      "You are analysing sales performance data across products and time. Using historical trends, comparisons, and forecasts, you identify areas that are performing well, areas that are underperforming, and the potential impact if no corrective action is taken.\n\nBased on this analysis, you must identify where to focus and determine whether intervention is necessary.",
+
+    masterStickers: [
+      {
+        id: "s1",
+        text: "Forecasting indicates that overall sales will decline if current trends continue",
+        color: "blue",
+      },
+      {
+        id: "s2",
+        text: "Product A has consistently been performing well compared to other products",
+        color: "blue",
+      },
+      {
+        id: "s3",
+        text: "Several products (highlighted in orange) are underperforming",
+        color: "blue",
+      },
+      {
+        id: "s4",
+        text: "What is the impact if nothing is done? Revenue will drop by 38%",
+        color: "blue",
+      },
+      {
+        id: "s5",
+        text: "Circled data points highlight the specific products or areas that require attention",
+        color: "blue",
+      },
+    ],
+  },
 ];
 
 export default activities;
