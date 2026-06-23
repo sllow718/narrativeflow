@@ -4,6 +4,17 @@ import TeamNamePage from "./components/TeamNamePage";
 import BriefTab from "./components/BriefTab";
 import StoryboardTab from "./components/StoryboardTab";
 import NarrativeTab from "./components/NarrativeTab";
+import {
+  logTeamNameSubmitted,
+  logTabSwitched,
+  logScenarioChanged,
+  logStoryboardStarted,
+  logStickerPlaced,
+  logStickerRemoved,
+  logCustomStickerCreated,
+  logMobileStickerSelected,
+  startSessionDoc,
+} from "./analytics/analytics";
 
 const createEmptyStoryboard = () => ({ problem: [], action: [], outcome: [] });
 const createEmptyNarrative = () => ({ intro: [], rising: [], climax: [], falling: [], conclude: [] });
@@ -63,6 +74,8 @@ export default function App() {
     const sticker = explicitSticker ?? dragging?.sticker ?? selectedSticker;
     if (!sticker) return;
 
+    const source = dragging?.source || "tray";
+
     if (type === "storyboard") {
       setStoryboard((prev) => {
         const next = { ...prev };
@@ -90,23 +103,25 @@ export default function App() {
       });
     }
 
+    logStickerPlaced(sticker.id, source, zone, type);
+
     setDragging(null);
     setDragOver(null);
     setSelectedSticker(null);
   };
 
-  const exportProgress = () => {
-    const data = { team: teamName, class: activity.className, storyboard, narrative };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${teamName.replace(/\s/g, "_")}_narrative.json`;
-    a.click();
-  };
-
   if (screen === "team") {
-    return <TeamNamePage activity={activity} onSubmit={(name) => { setTeamName(name); setScreen("app"); }} />;
+    return (
+      <TeamNamePage
+        activity={activity}
+        onSubmit={(name) => {
+          logTeamNameSubmitted(name, activity.id);
+          startSessionDoc(name, activity.id, activity.scenarioTitle);
+          setTeamName(name);
+          setScreen("app");
+        }}
+      />
+    );
   }
 
   return (
@@ -211,7 +226,10 @@ export default function App() {
             ].map((t) => (
               <button
                 key={t.id}
-                onClick={() => setActiveTab(t.id)}
+                onClick={() => {
+                  logTabSwitched(activeTab, t.id);
+                  setActiveTab(t.id);
+                }}
                 style={{
                   background: activeTab === t.id ? "rgba(99,102,241,0.1)" : "transparent",
                   border: activeTab === t.id ? "1px solid rgba(99,102,241,0.3)" : "1px solid transparent",
@@ -233,32 +251,6 @@ export default function App() {
           </nav>
         </div>
 
-        <button
-          onClick={exportProgress}
-          style={{
-            background: "transparent",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            padding: "6px 14px",
-            color: "#6b7280",
-            fontSize: 13,
-            fontWeight: 500,
-            cursor: "pointer",
-            fontFamily: "'DM Sans', sans-serif",
-            transition: "all 0.15s",
-            order: isMobile ? 2 : 3,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "#6366f1";
-            e.currentTarget.style.color = "#6366f1";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "#e5e7eb";
-            e.currentTarget.style.color = "#6b7280";
-          }}
-        >
-          Export
-        </button>
       </header>
 
       {activeTab === "brief" && (
@@ -267,8 +259,14 @@ export default function App() {
           activities={activities}
           isMobile={isMobile}
           selectedActivityId={activeActivityId}
-          onActivityChange={(id) => setActiveActivityId(id)}
-          onContinue={() => setActiveTab("storyboard")}
+          onActivityChange={(id) => {
+            logScenarioChanged(activeActivityId, id);
+            setActiveActivityId(id);
+          }}
+          onContinue={() => {
+            logStoryboardStarted(activity.id);
+            setActiveTab("storyboard");
+          }}
         />
       )}
       {activeTab === "storyboard" && (
@@ -284,7 +282,17 @@ export default function App() {
           onDrop={handleDrop}
           placedStickerIds={placedStickerIds}
           selectedSticker={selectedSticker}
-          onStickerTap={(sticker) => setSelectedSticker((prev) => (prev?.id === sticker.id ? null : sticker))}
+          onStickerTap={(sticker) => {
+            const next = selectedSticker?.id === sticker.id ? null : sticker;
+            logMobileStickerSelected(sticker.id);
+            setSelectedSticker(next);
+          }}
+          onStickerRemove={(sticker, zoneId, zoneType) => {
+            logStickerRemoved(sticker.id, zoneId, zoneType);
+          }}
+          onCustomStickerCreate={(text, color) => {
+            logCustomStickerCreated(text, color);
+          }}
           onZoneTap={(zone, type) => handleDrop(null, zone, type, selectedSticker)}
         />
       )}
@@ -299,7 +307,14 @@ export default function App() {
           setDragOver={setDragOver}
           onDrop={handleDrop}
           selectedSticker={selectedSticker}
-          onStickerTap={(sticker) => setSelectedSticker((prev) => (prev?.id === sticker.id ? null : sticker))}
+          onStickerRemove={(sticker, zoneId, zoneType) => {
+            logStickerRemoved(sticker.id, zoneId, zoneType);
+          }}
+          onStickerTap={(sticker) => {
+            const next = selectedSticker?.id === sticker.id ? null : sticker;
+            logMobileStickerSelected(sticker.id);
+            setSelectedSticker(next);
+          }}
           onZoneTap={(zone, type) => handleDrop(null, zone, type, selectedSticker)}
         />
       )}

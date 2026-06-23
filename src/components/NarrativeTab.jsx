@@ -13,6 +13,7 @@ export default function NarrativeTab({
   selectedSticker,
   onStickerTap,
   onZoneTap,
+  onStickerRemove,
 }) {
   const nodePositions = isMobile
     ? [
@@ -167,6 +168,7 @@ export default function NarrativeTab({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          onStickerRemove?.(s, node.id, "narrative");
                           setNarrative((prev) => ({ ...prev, [node.id]: prev[node.id].filter((x) => x.id !== s.id) }));
                         }}
                         style={{

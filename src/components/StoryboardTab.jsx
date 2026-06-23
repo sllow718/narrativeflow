@@ -19,6 +19,8 @@ export default function StoryboardTab({
   selectedSticker,
   onStickerTap,
   onZoneTap,
+  onStickerRemove,
+  onCustomStickerCreate,
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const [newText, setNewText] = useState("");
@@ -26,6 +28,7 @@ export default function StoryboardTab({
 
   const addCustomSticker = () => {
     if (!newText.trim()) return;
+    onCustomStickerCreate?.(newText.trim(), newColor);
     setStickers((prev) => [{ id: genId(), text: newText.trim(), color: newColor }, ...prev]);
     setNewText("");
     setShowCreate(false);
@@ -229,6 +232,7 @@ export default function StoryboardTab({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        onStickerRemove?.(s, col.id, "storyboard");
                         setStoryboard((prev) => ({ ...prev, [col.id]: prev[col.id].filter((x) => x.id !== s.id) }));
                       }}
                       style={{
