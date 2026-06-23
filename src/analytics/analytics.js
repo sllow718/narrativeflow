@@ -68,7 +68,7 @@ async function flush() {
 
 function scheduleFlush() {
   if (flushTimer) clearTimeout(flushTimer);
-  flushTimer = setTimeout(flush, 5_000); // 5 seconds (dev), 60s in prod
+  flushTimer = setTimeout(flush, 15_000); // 15 seconds
 }
 
 function checkBufferSize() {
@@ -141,7 +141,7 @@ export function logEvent(eventType, data = {}) {
   if (!flushTimer) scheduleFlush();
 }
 
-export function startSessionDoc(teamName, scenarioId, scenarioTitle) {
+export async function startSessionDoc(teamName, scenarioId, scenarioTitle) {
   if (!session) return;
 
   session.teamName = teamName;
@@ -151,20 +151,34 @@ export function startSessionDoc(teamName, scenarioId, scenarioTitle) {
   const db = getDb();
   const sessionRef = doc(db, "sessions", session.docId);
 
-  // Fire-and-forget — don't await
-  setDoc(sessionRef, {
-    sessionId: session.sessionId,
-    teamName,
-    scenarioId,
-    scenarioTitle,
-    userAgent: navigator.userAgent,
-    screenWidth: window.screen.width,
-    screenHeight: window.screen.height,
-    startedAt: serverTimestamp(),
-    totalStickersPlaced: 0,
-    tabsVisited: ["brief"],
-    events: [],
-  }).catch((e) => console.warn("Analytics session init failed:", e));
+  // Create the session document with initial events
+  const initialEvents = [...buffer];
+  buffer = [];
+
+  try {
+    await setDoc(sessionRef, {
+      sessionId: session.sessionId,
+      teamName,
+      scenarioId,
+      scenarioTitle,
+      userAgent: navigator.userAgent,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      startedAt: serverTimestamp(),
+      totalStickersPlaced: 0,
+      tabsVisited: ["brief"],
+      events: initialEvents,
+    });
+    // Clear the periodic timer — we just flushed
+    if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+  } catch (e) {
+    // Put events back in buffer on failure
+    buffer = [...initialEvents, ...buffer];
+    console.warn("Analytics session init failed:", e);
+  }
+
+  // Start periodic flush for subsequent events
+  scheduleFlush();
 }
 
 export function endSession() {
