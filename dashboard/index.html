@@ -97,9 +97,16 @@
 
     // --- Load ---
     async function loadData() {
-      const q = query(sessionsRef, orderBy("startedAt", "desc"), limit(500));
-      const snap = await getDocs(q);
-      allSessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      try {
+        const q = query(sessionsRef, orderBy("startedAt", "desc"), limit(500));
+        const snap = await getDocs(q);
+        allSessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.error("Failed to load sessions:", e);
+        document.querySelector("#sessionTable tbody").innerHTML =
+          '<tr><td class="empty-state" colspan="5"><h2>Failed to load</h2><p>' + e.message + '</p></td></tr>';
+        return;
+      }
       render();
     }
 
