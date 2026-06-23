@@ -76,15 +76,14 @@
     import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     // --- Config ---
-    // These values come from the same .env / Vite config as the main app
-    // For the dashboard, embed them directly since this is a standalone HTML file
+    // Injected at build time from Vercel environment variables
     const firebaseConfig = {
-      apiKey: "AIzaSyDstkHxkJNv5oy0Tn08WhZWRIm4Lo3LnbE",
-      authDomain: "narrativeflow-analytics.firebaseapp.com",
-      projectId: "narrativeflow-analytics",
-      storageBucket: "narrativeflow-analytics.firebasestorage.app",
-      messagingSenderId: "388460183330",
-      appId: "1:388460183330:web:50ab2fe69e910287226f7b",
+      apiKey: "__VITE_FIREBASE_API_KEY__",
+      authDomain: "__VITE_FIREBASE_AUTH_DOMAIN__",
+      projectId: "__VITE_FIREBASE_PROJECT_ID__",
+      storageBucket: "__VITE_FIREBASE_STORAGE_BUCKET__",
+      messagingSenderId: "__VITE_FIREBASE_MESSAGING_SENDER_ID__",
+      appId: "__VITE_FIREBASE_APP_ID__",
     };
 
     // --- Init ---
