@@ -1,7 +1,9 @@
 {
+  "redirects": [
+    { "source": "/dashboard", "destination": "/dashboard/index.html", "permanent": false },
+    { "source": "/dashboard/", "destination": "/dashboard/index.html", "permanent": false }
+  ],
   "rewrites": [
-    { "source": "/dashboard", "destination": "/dashboard/index.html" },
-    { "source": "/dashboard/", "destination": "/dashboard/index.html" },
     { "source": "/((?!dashboard).*)", "destination": "/index.html" }
   ]
 }

@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
@@ -27,11 +27,13 @@ export default defineConfig(({ mode }) => {
   const dashboardPlugin = () => ({
     name: "serve-dashboard",
     configureServer(server) {
-      // ponytail: redirect /dashboard → /dashboard/ so Vite's static
-      // file server picks up public/dashboard/index.html natively.
+      // ponytail: redirect to /dashboard/index.html — Vite's static
+      // file middleware serves public/ files raw (no HMR injection).
+      // /dashboard/ gets HMR injected because Vite processes directory
+      // indexes through its transform pipeline.
       server.middlewares.use((req, res, next) => {
-        if (req.url === "/dashboard") {
-          res.writeHead(302, { Location: "/dashboard/" });
+        if (req.url === "/dashboard" || req.url === "/dashboard/") {
+          res.writeHead(302, { Location: "/dashboard/index.html" });
           res.end();
           return;
         }
