@@ -1,16 +1,12 @@
 import { useState } from "react";
 import Sticker from "./Sticker";
+import StickerTray from "./StickerTray";
 import { STICKER_COLORS, STORYBOARD_COLS } from "../config/constants";
-
-let nextId = 100;
-const genId = () => `custom-${nextId++}`;
 
 export default function StoryboardTab({
   isMobile = false,
   stickers,
-  setStickers,
   storyboard,
-  setStoryboard,
   onDragStart,
   dragOver,
   setDragOver,
@@ -28,193 +24,82 @@ export default function StoryboardTab({
 
   const addCustomSticker = () => {
     if (!newText.trim()) return;
-    onCustomStickerCreate?.(newText.trim(), newColor);
-    setStickers((prev) => [{ id: genId(), text: newText.trim(), color: newColor }, ...prev]);
+    onCustomStickerCreate(newText.trim(), newColor);
     setNewText("");
     setShowCreate(false);
   };
 
+  const createForm = (
+    <div className="custom-sticker-form">
+      <textarea
+        value={newText}
+        onChange={(e) => setNewText(e.target.value)}
+        placeholder="Sticker text..."
+        className="custom-sticker-textarea"
+      />
+      <div className="color-picker">
+        {Object.keys(STICKER_COLORS).map((c) => (
+          <button
+            key={c}
+            onClick={() => setNewColor(c)}
+            className={`color-swatch${newColor === c ? " selected" : ""}`}
+            style={{ background: STICKER_COLORS[c].dot }}
+          />
+        ))}
+      </div>
+      <button onClick={addCustomSticker} className="btn-primary btn-primary-sm" style={{ width: "100%", borderRadius: 7, padding: "7px", fontSize: 12 }}>
+        Add Sticker
+      </button>
+    </div>
+  );
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: isMobile ? "column" : "row",
-        minHeight: isMobile ? "calc(100vh - 112px)" : "calc(100vh - 56px)",
-        overflow: "hidden",
-      }}
-    >
-      <aside
-        style={{
-          width: isMobile ? "100%" : 220,
-          maxHeight: isMobile ? "42vh" : "none",
-          background: "#fff",
-          borderRight: isMobile ? "none" : "1.5px solid #e5e7eb",
-          borderBottom: isMobile ? "1.5px solid #e5e7eb" : "none",
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto",
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ padding: "18px 16px 12px", borderBottom: "1px solid #f3f4f6" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.7px" }}>Sticker Tray</span>
-            <button
-              onClick={() => setShowCreate((p) => !p)}
-              style={{
-                background: "#6366f1",
-                border: "none",
-                borderRadius: 6,
-                padding: "3px 8px",
-                color: "#fff",
-                fontSize: 11,
-                fontWeight: 700,
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              + New
-            </button>
-          </div>
-          <p style={{ fontSize: 11, color: "#d1d5db", lineHeight: 1.4 }}>
-            Drag stickers into columns
-          </p>
-        </div>
+    <div className="two-panel" style={{ flexDirection: isMobile ? "column" : "row" }}>
+      <StickerTray
+        isMobile={isMobile}
+        title="Sticker Tray"
+        subtitle="Drag stickers into columns"
+        showCreate={showCreate}
+        onToggleCreate={() => setShowCreate((p) => !p)}
+        createForm={createForm}
+        stickers={stickers}
+        placedStickerIds={placedStickerIds}
+        selectedSticker={selectedSticker}
+        onDragStart={onDragStart}
+        onStickerTap={onStickerTap}
+        enableDrag={!isMobile}
+      />
 
-        {showCreate && (
-          <div style={{ padding: 12, borderBottom: "1px solid #f3f4f6", background: "#fafafa" }}>
-            <textarea
-              value={newText}
-              onChange={(e) => setNewText(e.target.value)}
-              placeholder="Sticker text..."
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                border: "1.5px solid #e5e7eb",
-                borderRadius: 8,
-                padding: 8,
-                fontSize: 12,
-                fontFamily: "'DM Sans', sans-serif",
-                resize: "none",
-                height: 70,
-                outline: "none",
-                marginBottom: 8,
-              }}
-            />
-            <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
-              {Object.keys(STICKER_COLORS).map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setNewColor(c)}
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: "50%",
-                    background: STICKER_COLORS[c].dot,
-                    border: newColor === c ? "2.5px solid #111" : "2px solid transparent",
-                    cursor: "pointer",
-                    outline: "none",
-                  }}
-                />
-              ))}
-            </div>
-            <button
-              onClick={addCustomSticker}
-              style={{
-                width: "100%",
-                background: "#6366f1",
-                border: "none",
-                borderRadius: 7,
-                padding: "7px",
-                color: "#fff",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              Add Sticker
-            </button>
-          </div>
-        )}
-
-        <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
-          {stickers.map((s) => (
-            <Sticker
-              key={s.id}
-              sticker={s}
-              onDragStart={(e, st) => onDragStart(e, st, "tray")}
-              onClick={() => {
-                if (isMobile) onStickerTap?.(s);
-              }}
-              selected={isMobile && selectedSticker?.id === s.id}
-              enableDrag={!isMobile}
-              compact
-              dimmed={placedStickerIds.has(s.id)}
-            />
-          ))}
-        </div>
-      </aside>
-
-      <main style={{ flex: 1, display: "flex", overflow: "auto", background: "#f8f7f5" }}>
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: isMobile ? "column" : "row",
-            minWidth: isMobile ? "100%" : 0,
-          }}
-        >
+      {/* Main content: 3-column storyboard */}
+      <div className="content-area" style={{ display: "flex", overflow: "auto", background: "var(--color-bg)" }}>
+        <div className="storyboard-columns" style={{ flexDirection: isMobile ? "column" : "row" }}>
           {STORYBOARD_COLS.map((col, i) => (
             <div
               key={col.id}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(col.id);
-              }}
+              className={`storyboard-col${dragOver === col.id ? " drag-over" : ""}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(col.id); }}
               onDragLeave={() => setDragOver(null)}
               onDrop={(e) => onDrop(e, col.id, "storyboard")}
-              onClick={() => {
-                if (isMobile) onZoneTap?.(col.id, "storyboard");
-              }}
+              onClick={() => { if (isMobile) onZoneTap(col.id, "storyboard"); }}
               style={{
-                flex: 1,
-                minWidth: isMobile ? "100%" : 240,
-                borderRight: !isMobile && i < STORYBOARD_COLS.length - 1 ? "1.5px solid #e5e7eb" : "none",
-                borderBottom: isMobile && i < STORYBOARD_COLS.length - 1 ? "1.5px solid #e5e7eb" : "none",
-                display: "flex",
-                flexDirection: "column",
-                background: dragOver === col.id ? "rgba(99,102,241,0.03)" : "transparent",
-                transition: "background 0.15s",
-                minHeight: isMobile ? 300 : "auto",
+                borderRight: !isMobile && i < STORYBOARD_COLS.length - 1 ? "1.5px solid var(--color-border)" : "none",
+                borderBottom: isMobile && i < STORYBOARD_COLS.length - 1 ? "1.5px solid var(--color-border)" : "none",
               }}
             >
-              <div style={{ padding: isMobile ? "14px 14px 12px" : "20px 20px 16px", borderBottom: "1.5px solid #e5e7eb", background: "#fff" }}>
+              <div className="zone-header" style={{ padding: isMobile ? "14px 14px 12px" : "20px 20px 16px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 20 }}>{col.icon}</span>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#111", letterSpacing: "-0.3px" }}>{col.label}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>{col.desc}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "var(--color-heading)", letterSpacing: "-0.3px" }}>{col.label}</div>
+                    <div style={{ fontSize: 11, color: "var(--color-muted)", fontWeight: 500 }}>{col.desc}</div>
                   </div>
-                  <div style={{ marginLeft: "auto", background: "#f3f4f6", borderRadius: 100, padding: "2px 10px", fontSize: 11, fontWeight: 700, color: "#6b7280" }}>
-                    {storyboard[col.id].length}
-                  </div>
+                  <div className="zone-count">{storyboard[col.id].length}</div>
                 </div>
               </div>
 
-              <div style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", minHeight: 200 }}>
+              <div className="storyboard-col-content">
                 {storyboard[col.id].length === 0 && (
-                  <div
-                    style={{
-                      border: "2px dashed #e5e7eb",
-                      borderRadius: 12,
-                      padding: "32px 16px",
-                      textAlign: "center",
-                      color: "#d1d5db",
-                      fontSize: 12,
-                      fontWeight: 500,
-                    }}
-                  >
+                  <div className="drop-zone-empty" style={{ borderRadius: 12, padding: "32px 16px", fontSize: 12 }}>
                     {isMobile ? "Tap a sticker, then tap here" : "Drop stickers here"}
                   </div>
                 )}
@@ -223,35 +108,17 @@ export default function StoryboardTab({
                     <Sticker
                       sticker={s}
                       onDragStart={(e, st) => onDragStart(e, st, col.id)}
-                      onClick={() => {
-                        if (isMobile) onStickerTap?.(s);
-                      }}
+                      onClick={() => { if (isMobile) onStickerTap(s); }}
                       selected={isMobile && selectedSticker?.id === s.id}
                       enableDrag={!isMobile}
                     />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onStickerRemove?.(s, col.id, "storyboard");
-                        setStoryboard((prev) => ({ ...prev, [col.id]: prev[col.id].filter((x) => x.id !== s.id) }));
+                        onStickerRemove(s, col.id, "storyboard");
                       }}
-                      style={{
-                        position: "absolute",
-                        top: 5,
-                        right: 5,
-                        background: "rgba(0,0,0,0.12)",
-                        border: "none",
-                        borderRadius: "50%",
-                        width: 18,
-                        height: 18,
-                        fontSize: 11,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#666",
-                        padding: 0,
-                      }}
+                      className="sticker-remove"
+                      style={{ top: 5, right: 5, width: 18, height: 18, fontSize: 11, color: "#666" }}
                     >
                       x
                     </button>
@@ -261,7 +128,7 @@ export default function StoryboardTab({
             </div>
           ))}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

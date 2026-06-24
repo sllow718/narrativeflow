@@ -1,26 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useReducer, useMemo } from "react";
 import activities from "./config/activities";
 import TeamNamePage from "./components/TeamNamePage";
 import BriefTab from "./components/BriefTab";
 import StoryboardTab from "./components/StoryboardTab";
 import NarrativeTab from "./components/NarrativeTab";
-import {
-  logTeamNameSubmitted,
-  logTabSwitched,
-  logScenarioChanged,
-  logStoryboardStarted,
-  logStickerPlaced,
-  logStickerRemoved,
-  logCustomStickerCreated,
-  logMobileStickerSelected,
-  startSessionDoc,
-} from "./analytics/analytics";
-
-const createEmptyStoryboard = () => ({ problem: [], action: [], outcome: [] });
-const createEmptyNarrative = () => ({ intro: [], rising: [], climax: [], falling: [], conclude: [] });
-const shuffleStickers = (stickers) => [...stickers].sort(() => Math.random() - 0.5);
+import { reducer, initialState } from "./reducer";
+import useAnalytics from "./useAnalytics";
 
 export default function App() {
+  const analytics = useAnalytics();
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
@@ -34,223 +22,98 @@ export default function App() {
   const isMobile = viewportWidth < 768;
   const isCompact = viewportWidth < 1024;
 
-  const [screen, setScreen] = useState("team");
-  const [teamName, setTeamName] = useState("");
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const { screen, teamName, activeTab, activeActivityId, stickers, storyboard, narrative, dragging, dragOver, selectedSticker } = state;
 
-  const [activeTab, setActiveTab] = useState("brief");
-  const [activeActivityId, setActiveActivityId] = useState(activities[0].id);
-  const activity = activities.find((act) => act.id === activeActivityId) ?? activities[0];
-  const [stickers, setStickers] = useState(() => shuffleStickers(activities[0].masterStickers));
-  const [storyboard, setStoryboard] = useState(() => createEmptyStoryboard());
-  const [narrative, setNarrative] = useState(() => createEmptyNarrative());
-  const [dragging, setDragging] = useState(null);
-  const [dragOver, setDragOver] = useState(null);
-  const [selectedSticker, setSelectedSticker] = useState(null);
+  const activity = useMemo(
+    () => activities.find((act) => act.id === activeActivityId) ?? activities[0],
+    [activeActivityId]
+  );
 
-  const placedStickerIds = new Set([
-    ...Object.values(storyboard)
-      .flat()
-      .map((s) => s.id),
-    ...Object.values(narrative)
-      .flat()
-      .map((s) => s.id),
-  ]);
+  const placedStickerIds = useMemo(() => {
+    const ids = new Set();
+    Object.values(storyboard).flat().forEach((s) => ids.add(s.id));
+    Object.values(narrative).flat().forEach((s) => ids.add(s.id));
+    return ids;
+  }, [storyboard, narrative]);
 
-  useEffect(() => {
-    setStickers(shuffleStickers(activity.masterStickers));
-    setStoryboard(createEmptyStoryboard());
-    setNarrative(createEmptyNarrative());
-    setSelectedSticker(null);
-  }, [activity.id]);
-
+  // Drag-and-drop handlers (thin wrappers — logic is in the reducer)
   const handleDragStart = (e, sticker, source = "tray") => {
-    setDragging({ sticker, source });
-    setSelectedSticker(sticker);
+    dispatch({ type: "START_DRAG", sticker, source });
     e.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDrop = (e, zone, type, explicitSticker = null) => {
+  const handleDrop = (e, zone, zoneType, explicitSticker = null) => {
     e?.preventDefault?.();
     const sticker = explicitSticker ?? dragging?.sticker ?? selectedSticker;
     if (!sticker) return;
 
     const source = dragging?.source || "tray";
-
-    if (type === "storyboard") {
-      setStoryboard((prev) => {
-        const next = { ...prev };
-        Object.keys(next).forEach((k) => {
-          next[k] = next[k].filter((s) => s.id !== sticker.id);
-        });
-        setNarrative((pn) => {
-          const nn = { ...pn };
-          Object.keys(nn).forEach((k) => {
-            nn[k] = nn[k].filter((s) => s.id !== sticker.id);
-          });
-          return nn;
-        });
-        next[zone] = [...next[zone], sticker];
-        return next;
-      });
-    } else if (type === "narrative") {
-      setNarrative((prev) => {
-        const next = { ...prev };
-        Object.keys(next).forEach((k) => {
-          next[k] = next[k].filter((s) => s.id !== sticker.id);
-        });
-        next[zone] = [...next[zone], sticker];
-        return next;
-      });
-    }
-
-    logStickerPlaced(sticker.id, source, zone, type);
-
-    setDragging(null);
-    setDragOver(null);
-    setSelectedSticker(null);
+    dispatch({ type: "PLACE_STICKER", sticker, zone, zoneType });
+    analytics.logStickerPlaced(sticker.id, source, zone, zoneType);
   };
+
+  const TABS = [
+    { id: "brief", label: "1. Brief" },
+    { id: "storyboard", label: "2. Storyboard" },
+    { id: "narrative", label: "3. Narrative" },
+  ];
 
   if (screen === "team") {
     return (
       <TeamNamePage
         activity={activity}
         onSubmit={(name) => {
-          logTeamNameSubmitted(name, activity.id);
-          startSessionDoc(name, activity.id, activity.scenarioTitle);
-          setTeamName(name);
-          setScreen("app");
+          analytics.logTeamNameSubmitted(name, activity.id);
+          analytics.startSessionDoc(name, activity.id, activity.scenarioTitle);
+          dispatch({ type: "SET_TEAM", teamName: name });
         }}
       />
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8f7f5", fontFamily: "'DM Sans', sans-serif" }}>
-      <header
-        style={{
-          background: "#fff",
-          padding: isMobile ? "10px 14px" : "8px 24px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          flexWrap: isMobile ? "wrap" : "nowrap",
-          minHeight: 56,
-          borderBottom: "1.5px solid #e5e7eb",
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 16, minWidth: 0, order: 1 }}>
+    <div className="app-shell">
+      <header className="app-header" style={{ padding: isMobile ? "10px 14px" : "8px 24px", flexWrap: isMobile ? "wrap" : "nowrap" }}>
+        <div className="header-left" style={{ gap: isMobile ? 10 : 16, order: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+            <div className="brand-logo">
               <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
                 <path d="M3 14 L9 4 L15 14" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M5.5 10 H12.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
               </svg>
             </div>
-            <span style={{ color: "#111", fontWeight: 700, fontSize: 15 }}>NarrativeFlow</span>
+            <span className="brand-name">NarrativeFlow</span>
           </div>
 
-          {!isMobile && <div style={{ width: 1, height: 20, background: "#e5e7eb" }} />}
+          {!isMobile && <div className="header-divider" />}
 
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <div
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: 6,
-                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 11,
-                fontWeight: 700,
-                color: "#fff",
-              }}
-            >
-              {teamName[0]?.toUpperCase()}
-            </div>
+            <div className="team-avatar">{teamName[0]?.toUpperCase()}</div>
             {!isMobile && (
-              <span
-                style={{
-                  color: "#6b7280",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  maxWidth: isCompact ? 160 : 220,
-                }}
-              >
+              <span className="team-label" style={{ maxWidth: isCompact ? 160 : 220 }}>
                 {teamName}
               </span>
             )}
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            flex: isMobile ? "1 1 100%" : "0 1 auto",
-            width: isMobile ? "100%" : "auto",
-            order: isMobile ? 3 : 2,
-          }}
-        >
-          <nav
-            style={{
-              display: "flex",
-              gap: 4,
-              overflowX: "auto",
-              width: isMobile ? "100%" : "auto",
-              paddingBottom: isMobile ? 2 : 0,
-            }}
-          >
-            {[
-              { id: "brief", label: "1. Brief" },
-              { id: "storyboard", label: "2. Storyboard" },
-              { id: "narrative", label: "3. Narrative" },
-            ].map((t) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: isMobile ? "1 1 100%" : "0 1 auto", width: isMobile ? "100%" : "auto", order: isMobile ? 3 : 2 }}>
+          <nav className="tab-nav" style={{ width: isMobile ? "100%" : "auto" }}>
+            {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => {
-                  logTabSwitched(activeTab, t.id);
-                  setActiveTab(t.id);
+                  analytics.logTabSwitched(activeTab, t.id);
+                  dispatch({ type: "SWITCH_TAB", tab: t.id });
                 }}
-                style={{
-                  background: activeTab === t.id ? "rgba(99,102,241,0.1)" : "transparent",
-                  border: activeTab === t.id ? "1px solid rgba(99,102,241,0.3)" : "1px solid transparent",
-                  borderRadius: 8,
-                  padding: "6px 14px",
-                  color: activeTab === t.id ? "#6366f1" : "#9ca3af",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                  fontFamily: "'DM Sans', sans-serif",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                }}
+                className={`tab-btn${activeTab === t.id ? " active" : ""}`}
               >
                 {t.label}
               </button>
             ))}
           </nav>
         </div>
-
       </header>
 
       {activeTab === "brief" && (
@@ -260,12 +123,12 @@ export default function App() {
           isMobile={isMobile}
           selectedActivityId={activeActivityId}
           onActivityChange={(id) => {
-            logScenarioChanged(activeActivityId, id);
-            setActiveActivityId(id);
+            analytics.logScenarioChanged(activeActivityId, id);
+            dispatch({ type: "CHANGE_SCENARIO", activityId: id });
           }}
           onContinue={() => {
-            logStoryboardStarted(activity.id);
-            setActiveTab("storyboard");
+            analytics.logStoryboardStarted(activity.id);
+            dispatch({ type: "SWITCH_TAB", tab: "storyboard" });
           }}
         />
       )}
@@ -273,25 +136,25 @@ export default function App() {
         <StoryboardTab
           isMobile={isMobile}
           stickers={stickers}
-          setStickers={setStickers}
           storyboard={storyboard}
-          setStoryboard={setStoryboard}
           onDragStart={handleDragStart}
           dragOver={dragOver}
-          setDragOver={setDragOver}
+          setDragOver={(id) => dispatch({ type: "SET_DRAG_OVER", zoneId: id })}
           onDrop={handleDrop}
           placedStickerIds={placedStickerIds}
           selectedSticker={selectedSticker}
           onStickerTap={(sticker) => {
-            const next = selectedSticker?.id === sticker.id ? null : sticker;
-            logMobileStickerSelected(sticker.id);
-            setSelectedSticker(next);
+            analytics.logMobileStickerSelected(sticker.id);
+            dispatch({ type: "SELECT_STICKER", sticker });
           }}
           onStickerRemove={(sticker, zoneId, zoneType) => {
-            logStickerRemoved(sticker.id, zoneId, zoneType);
+            analytics.logStickerRemoved(sticker.id, zoneId, zoneType);
+            dispatch({ type: "REMOVE_STICKER", sticker, zoneId, zoneType });
           }}
           onCustomStickerCreate={(text, color) => {
-            logCustomStickerCreated(text, color);
+            analytics.logCustomStickerCreated(text, color);
+            const id = `custom-${crypto.randomUUID()}`;
+            dispatch({ type: "ADD_CUSTOM_STICKER", id, text, color });
           }}
           onZoneTap={(zone, type) => handleDrop(null, zone, type, selectedSticker)}
         />
@@ -301,31 +164,22 @@ export default function App() {
           isMobile={isMobile}
           stickers={stickers}
           narrative={narrative}
-          setNarrative={setNarrative}
           onDragStart={handleDragStart}
           dragOver={dragOver}
-          setDragOver={setDragOver}
+          setDragOver={(id) => dispatch({ type: "SET_DRAG_OVER", zoneId: id })}
           onDrop={handleDrop}
           selectedSticker={selectedSticker}
           onStickerRemove={(sticker, zoneId, zoneType) => {
-            logStickerRemoved(sticker.id, zoneId, zoneType);
+            analytics.logStickerRemoved(sticker.id, zoneId, zoneType);
+            dispatch({ type: "REMOVE_STICKER", sticker, zoneId, zoneType });
           }}
           onStickerTap={(sticker) => {
-            const next = selectedSticker?.id === sticker.id ? null : sticker;
-            logMobileStickerSelected(sticker.id);
-            setSelectedSticker(next);
+            analytics.logMobileStickerSelected(sticker.id);
+            dispatch({ type: "SELECT_STICKER", sticker });
           }}
           onZoneTap={(zone, type) => handleDrop(null, zone, type, selectedSticker)}
         />
       )}
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 3px; }
-      `}</style>
     </div>
   );
 }

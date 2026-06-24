@@ -1,11 +1,11 @@
 import Sticker from "./Sticker";
+import StickerTray from "./StickerTray";
 import { NARRATIVE_NODES } from "../config/constants";
 
 export default function NarrativeTab({
   isMobile = false,
   stickers,
   narrative,
-  setNarrative,
   onDragStart,
   dragOver,
   setDragOver,
@@ -31,61 +31,39 @@ export default function NarrativeTab({
         { x: 850, y: 80 },
       ];
 
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: isMobile ? "column" : "row",
-        minHeight: isMobile ? "calc(100vh - 112px)" : "calc(100vh - 56px)",
-        overflow: "hidden",
-      }}
-    >
-      <aside
-        style={{
-          width: isMobile ? "100%" : 220,
-          maxHeight: isMobile ? "42vh" : "none",
-          background: "#fff",
-          borderRight: isMobile ? "none" : "1.5px solid #e5e7eb",
-          borderBottom: isMobile ? "1.5px solid #e5e7eb" : "none",
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto",
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ padding: "18px 16px 12px", borderBottom: "1px solid #f3f4f6" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.7px", display: "block", marginBottom: 4 }}>
-            All Stickers
-          </span>
-          <p style={{ fontSize: 11, color: "#d1d5db", lineHeight: 1.4 }}>Drag onto the arc nodes</p>
-        </div>
-        <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
-          {stickers.map((s) => (
-            <Sticker
-              key={s.id}
-              sticker={s}
-              onDragStart={(e, st) => onDragStart(e, st, "tray")}
-              onClick={() => {
-                if (isMobile) onStickerTap?.(s);
-              }}
-              selected={isMobile && selectedSticker?.id === s.id}
-              enableDrag={!isMobile}
-              compact
-              dimmed={Object.values(narrative).flat().some((n) => n.id === s.id)}
-            />
-          ))}
-        </div>
-      </aside>
+  const arcPath = isMobile
+    ? "M 30 88 Q 130 10, 250 20 Q 360 24, 470 84"
+    : "M 50 90 Q 250 10, 450 8 Q 650 6, 850 80";
 
-      <main style={{ flex: 1, overflowY: "auto", padding: isMobile ? "20px 14px 24px" : "32px 32px 48px", background: "#f8f7f5" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#111", letterSpacing: "-0.5px", marginBottom: 6 }}>Story Arc</h2>
-          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: isMobile ? 18 : 32 }}>
+  // ponytail: build placedStickerIds only for narrative zones
+  const placedStickerIds = new Set(
+    Object.values(narrative).flat().map((s) => s.id)
+  );
+
+  return (
+    <div className="two-panel" style={{ flexDirection: isMobile ? "column" : "row" }}>
+      <StickerTray
+        isMobile={isMobile}
+        title="All Stickers"
+        subtitle="Drag onto the arc nodes"
+        stickers={stickers}
+        placedStickerIds={placedStickerIds}
+        selectedSticker={selectedSticker}
+        onDragStart={onDragStart}
+        onStickerTap={onStickerTap}
+        enableDrag={!isMobile}
+      />
+
+      {/* Main content: Story Arc */}
+      <main className="content-area" style={{ padding: isMobile ? "20px 14px 24px" : "32px 32px 48px", background: "var(--color-bg)" }}>
+        <div className="content-wide" style={{ maxWidth: 900 }}>
+          <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "var(--color-heading)", letterSpacing: "-0.5px", marginBottom: 6 }}>Story Arc</h2>
+          <p style={{ color: "var(--color-muted)", fontSize: 13, marginBottom: isMobile ? 18 : 32 }}>
             Map your stickers onto the narrative structure below.
           </p>
 
           <div style={{ position: "relative", marginBottom: isMobile ? 20 : 40 }}>
-            <svg viewBox={isMobile ? "0 0 500 105" : "0 0 900 100"} style={{ width: "100%", overflow: "visible" }}>
+            <svg viewBox={isMobile ? "0 0 500 105" : "0 0 900 100"} className="arc-svg">
               <defs>
                 <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#6366f1" />
@@ -93,63 +71,38 @@ export default function NarrativeTab({
                   <stop offset="100%" stopColor="#10b981" />
                 </linearGradient>
               </defs>
-              <path d={isMobile ? "M 30 88 Q 130 10, 250 20 Q 360 24, 470 84" : "M 50 90 Q 250 10, 450 8 Q 650 6, 850 80"} fill="none" stroke="url(#arcGrad)" strokeWidth="3" strokeLinecap="round" />
+              <path d={arcPath} fill="none" stroke="url(#arcGrad)" strokeWidth="3" strokeLinecap="round" />
               {NARRATIVE_NODES.map((node, i) => (
                 <circle key={node.id} cx={nodePositions[i].x} cy={nodePositions[i].y} r="8" fill={node.color} />
               ))}
             </svg>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(5, minmax(0, 1fr))", gap: 14 }}>
+          <div className="narrative-grid" style={{ gridTemplateColumns: isMobile ? "1fr" : "repeat(5, minmax(0, 1fr))" }}>
             {NARRATIVE_NODES.map((node) => (
               <div
                 key={node.id}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOver(node.id);
-                }}
+                className={`drop-zone${dragOver === node.id ? " drag-over" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(node.id); }}
                 onDragLeave={() => setDragOver(null)}
                 onDrop={(e) => onDrop(e, node.id, "narrative")}
-                onClick={() => {
-                  if (isMobile) onZoneTap?.(node.id, "narrative");
-                }}
+                onClick={() => { if (isMobile) onZoneTap(node.id, "narrative"); }}
                 style={{
-                  background: "#fff",
-                  border: dragOver === node.id ? `2px solid ${node.color}` : "1.5px solid #e5e7eb",
-                  borderRadius: 14,
-                  padding: 16,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
+                  borderColor: dragOver === node.id ? node.color : undefined,
+                  boxShadow: dragOver === node.id ? `0 0 0 4px ${node.color}22` : undefined,
                   minHeight: isMobile ? 140 : 180,
-                  transition: "border-color 0.15s, box-shadow 0.15s",
-                  boxShadow: dragOver === node.id ? `0 0 0 4px ${node.color}22` : "0 2px 6px rgba(0,0,0,0.04)",
                 }}
               >
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 800, color: node.color, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 3 }}>
                     {node.icon}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#111", letterSpacing: "-0.2px", marginBottom: 2 }}>{node.label}</div>
-                  <div style={{ fontSize: 11, color: "#9ca3af" }}>{node.desc}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "var(--color-heading)", letterSpacing: "-0.2px", marginBottom: 2 }}>{node.label}</div>
+                  <div style={{ fontSize: 11, color: "var(--color-muted)" }}>{node.desc}</div>
                 </div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                   {narrative[node.id].length === 0 && (
-                    <div
-                      style={{
-                        border: "2px dashed #e5e7eb",
-                        borderRadius: 9,
-                        padding: "20px 10px",
-                        textAlign: "center",
-                        color: "#d1d5db",
-                        fontSize: 11,
-                        fontWeight: 500,
-                        flex: 1,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
+                    <div className="drop-zone-empty" style={{ borderRadius: 9, padding: "20px 10px" }}>
                       {isMobile ? "Tap a sticker, then tap here" : "Drop here"}
                     </div>
                   )}
@@ -158,9 +111,7 @@ export default function NarrativeTab({
                       <Sticker
                         sticker={s}
                         onDragStart={(e, st) => onDragStart(e, st, node.id)}
-                        onClick={() => {
-                          if (isMobile) onStickerTap?.(s);
-                        }}
+                        onClick={() => { if (isMobile) onStickerTap(s); }}
                         selected={isMobile && selectedSticker?.id === s.id}
                         enableDrag={!isMobile}
                         compact
@@ -168,26 +119,9 @@ export default function NarrativeTab({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onStickerRemove?.(s, node.id, "narrative");
-                          setNarrative((prev) => ({ ...prev, [node.id]: prev[node.id].filter((x) => x.id !== s.id) }));
+                          onStickerRemove(s, node.id, "narrative");
                         }}
-                        style={{
-                          position: "absolute",
-                          top: 4,
-                          right: 4,
-                          background: "rgba(0,0,0,0.12)",
-                          border: "none",
-                          borderRadius: "50%",
-                          width: 16,
-                          height: 16,
-                          fontSize: 10,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#555",
-                          padding: 0,
-                        }}
+                        className="sticker-remove"
                       >
                         x
                       </button>
@@ -199,19 +133,19 @@ export default function NarrativeTab({
           </div>
 
           {Object.values(narrative).some((v) => v.length > 0) && (
-            <div style={{ marginTop: 28, background: "#ede9fe", border: "1.5px solid #c4b5fd", borderRadius: 16, padding: isMobile ? 18 : 28 }}>
-              <h3 style={{ color: "#3730a3", fontSize: 16, fontWeight: 800, marginBottom: 20 }}>Your Narrative Summary</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="narrative-summary" style={{ padding: isMobile ? 18 : 28 }}>
+              <h3 className="narrative-summary-title">Your Narrative Summary</h3>
+              <div className="narrative-summary-items">
                 {NARRATIVE_NODES.map(
                   (node) =>
                     narrative[node.id].length > 0 && (
-                      <div key={node.id} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: node.color, flexShrink: 0, marginTop: 5 }} />
+                      <div key={node.id} className="narrative-summary-row">
+                        <div className="narrative-summary-dot" style={{ background: node.color }} />
                         <div>
-                          <span style={{ color: node.color, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          <span className="narrative-summary-label" style={{ color: node.color }}>
                             {node.label}:{" "}
                           </span>
-                          <span style={{ color: "#4c1d95", fontSize: 13, whiteSpace: "pre-line" }}>{narrative[node.id].map((s) => s.text).join(" | ")}</span>
+                          <span className="narrative-summary-text">{narrative[node.id].map((s) => s.text).join(" | ")}</span>
                         </div>
                       </div>
                     )
