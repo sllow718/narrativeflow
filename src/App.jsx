@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import activities from "./config/activities";
 import TeamNamePage from "./components/TeamNamePage";
 import BriefTab from "./components/BriefTab";
@@ -311,6 +312,7 @@ export default function App() {
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 3px; }
       `}</style>
+      <Analytics />
     </div>
   );
 }
